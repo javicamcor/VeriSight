@@ -12,7 +12,7 @@ Las redes neuronales generativas (GANs, modelos de difusión) utilizan operacion
 Para garantizar el rigor y la reproducibilidad de esta Prueba de Concepto, las imágenes de muestra utilizadas en la carpeta `/data` provienen de fuentes reconocidas:
 
 * **Imagen Real (`real_face.jpg`):** Extraída del *dataset* público [FFHQ (Flickr-Faces-HQ)](https://github.com/NVlabs/ffhq-dataset), un estándar académico de alta calidad utilizado mundialmente en la investigación de visión por computador.
-* **Imagen Sintética (`ai_face.jpg`):** Generada mediante [ThisPersonDoesNotExist], basada en arquitecturas generativas (GANs).
+* **Imagen Sintética (`ai_face.jpg`):** Generada mediante ThisPersonDoesNotExist.com, basada en arquitecturas generativas (GANs).
 
 Este repositorio contiene la **Prueba de Concepto (PoC)** algorítmica que valida esta hipótesis, demostrando cómo extraer la firma espectral de una imagen para diferenciar características orgánicas humanas de artefactos sintéticos.
 
