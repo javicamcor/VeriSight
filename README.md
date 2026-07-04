@@ -8,6 +8,12 @@ La proliferación de imágenes sintéticas generadas por IA ha abierto un nuevo 
 ## Fundamento Matemático
 Las redes neuronales generativas (GANs, modelos de difusión) utilizan operaciones matemáticas (*up-sampling*) que introducen patrones periódicos y ruido de cuadrícula en la estructura de la imagen. Estos artefactos son invisibles para el ojo humano, pero claramente identificables al aplicar la **Transformada Discreta de Fourier 2D (2D DFT)**.
 
+## Origen de los Datos (Dataset)
+Para garantizar el rigor y la reproducibilidad de esta Prueba de Concepto, las imágenes de muestra utilizadas en la carpeta `/data` provienen de fuentes reconocidas:
+
+* **Imagen Real (`real_face.jpg`):** Extraída del *dataset* público [FFHQ (Flickr-Faces-HQ)](https://github.com/NVlabs/ffhq-dataset), un estándar académico de alta calidad utilizado mundialmente en la investigación de visión por computador.
+* **Imagen Sintética (`ai_face.jpg`):** Generada mediante [ThisPersonDoesNotExist], basada en arquitecturas generativas (GANs).
+
 Este repositorio contiene la **Prueba de Concepto (PoC)** algorítmica que valida esta hipótesis, demostrando cómo extraer la firma espectral de una imagen para diferenciar características orgánicas humanas de artefactos sintéticos.
 
 ## Estructura de la Prueba de Concepto (PoC)

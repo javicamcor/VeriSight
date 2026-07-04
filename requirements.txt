@@ -1,0 +1,4 @@
+# Dependencias del proyecto
+numpy
+opencv-python
+matplotlib
