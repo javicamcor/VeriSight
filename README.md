@@ -22,3 +22,13 @@ El script incluido en este repositorio realiza el siguiente flujo de trabajo:
 2. **Preprocesamiento:** Conversión a escala de grises.
 3. **Análisis Espectral:** Aplicación de la Transformada Rápida de Fourier (FFT) mediante `numpy`.
 4. **Extracción:** Generación de espectrogramas de magnitud y visualización de altas frecuencias.
+
+
+## Interpretación de los Resultados (Conclusiones de la PoC)
+
+El aislamiento de altas frecuencias revela de forma empírica la diferencia fundamental entre la fotónica real y la generación sintética:
+
+* **Espectro de la Imagen Real (Arriba a la derecha):** La distribución de la energía frecuencial es suave, difusa y aleatoria. Esto se debe a que la luz real interactúa de forma natural con las lentes y los sensores físicos de las cámaras. No existen patrones forzados en las altas frecuencias.
+* **Espectro de la Imagen Sintética (Abajo a la derecha):** Se aprecian claramente **líneas geométricas prominentes (trazos horizontales/verticales) y destellos estructurados**. Estos artefactos son la firma matemática del algoritmo. Cuando las redes generativas (GANs o Modelos de Difusión) realizan operaciones de *up-sampling* para crear nuevos píxeles a partir de ruido, introducen involuntariamente un "ruido de cuadrícula" periódico.
+
+**Conclusión:** Mientras que a simple vista ambas imágenes son indistinguibles (dominio espacial), la Transformada Discreta de Fourier demuestra que los rostros sintéticos carecen de la aleatoriedad orgánica a nivel estructural, validando la eficacia de **VeriSight** como método de detección de *Deepfakes*.
