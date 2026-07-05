@@ -106,7 +106,6 @@ def visualizar_comparativa(img_real, espectro_real, img_ai, espectro_ai):
     plt.tight_layout()
     plt.suptitle("VeriSight PoC: Aislamiento de Altas Frecuencias", fontsize=16, y=1.02)
     
-    # Guardamos la imagen final para adjuntarla al repositorio
     plt.savefig('comparativa_espectros.png', dpi=300, bbox_inches='tight')
     plt.show()
 
@@ -133,4 +132,4 @@ if __name__ == "__main__":
         print("[+] ¡Proceso completado con éxito! Archivo 'comparativa_espectros.png' guardado.")
         
     except Exception as e:
-        print(f"[-] Error fatal durante la ejecución: {e}")
+        print(f"[-] Error durante la ejecución: {e}")
