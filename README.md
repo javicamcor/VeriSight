@@ -12,7 +12,7 @@ Las redes neuronales generativas (GANs, modelos de difusión) utilizan operacion
 Para garantizar el rigor y la reproducibilidad de esta Prueba de Concepto, las imágenes de muestra utilizadas en la carpeta `/data` provienen de fuentes reconocidas:
 
 * **Imagen Real (`real_face.jpg`):** Extraída del *dataset* público [FFHQ (Flickr-Faces-HQ)](https://github.com/NVlabs/ffhq-dataset), un estándar académico de alta calidad utilizado mundialmente en la investigación de visión por computador.
-* **Imagen Sintética (`ai_face.jpg`):** Generada mediante [ThisPersonDoesNotExist], basada en arquitecturas generativas (GANs).
+* **Imagen Sintética (`ai_face.jpg`):** Generada mediante ThisPersonDoesNotExist.com, basada en arquitecturas generativas (GANs).
 
 Este repositorio contiene la **Prueba de Concepto (PoC)** algorítmica que valida esta hipótesis, demostrando cómo extraer la firma espectral de una imagen para diferenciar características orgánicas humanas de artefactos sintéticos.
 
@@ -26,9 +26,9 @@ El script incluido en este repositorio realiza el siguiente flujo de trabajo:
 
 ## Interpretación de los Resultados (Conclusiones de la PoC)
 
-El aislamiento de altas frecuencias revela de forma empírica la diferencia fundamental entre la fotónica real y la generación sintética:
+Como se puede observar en la imagen generada por el script (`comparativa_espectros.png`), el aislamiento de altas frecuencias revela de forma empírica la diferencia fundamental entre la captura fotónica real y la generación sintética:
 
 * **Espectro de la Imagen Real (Arriba a la derecha):** La distribución de la energía frecuencial es suave, difusa y aleatoria. Esto se debe a que la luz real interactúa de forma natural con las lentes y los sensores físicos de las cámaras. No existen patrones forzados en las altas frecuencias.
 * **Espectro de la Imagen Sintética (Abajo a la derecha):** Se aprecian claramente **líneas geométricas prominentes (trazos horizontales/verticales) y destellos estructurados**. Estos artefactos son la firma matemática del algoritmo. Cuando las redes generativas (GANs o Modelos de Difusión) realizan operaciones de *up-sampling* para crear nuevos píxeles a partir de ruido, introducen involuntariamente un "ruido de cuadrícula" periódico.
 
-**Conclusión:** Mientras que a simple vista ambas imágenes son indistinguibles (dominio espacial), la Transformada Discreta de Fourier demuestra que los rostros sintéticos carecen de la aleatoriedad orgánica a nivel estructural, validando la eficacia de **VeriSight** como método de detección de *Deepfakes*.
+**Conclusión:** Mientras que a simple vista ambas imágenes son indistinguibles en el dominio espacial, la gráfica demostrativa en el archivo `comparativa_espectros.png` evidencia mediante la Transformada Discreta de Fourier que los rostros sintéticos carecen de la aleatoriedad orgánica a nivel estructural. Esto valida matemáticamente la eficacia de **VeriSight** como método de detección de *Deepfakes*.
