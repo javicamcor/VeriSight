@@ -6,48 +6,35 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import argparse
 
+import torchvision.models as models
+
 class DeepfakeCNN(nn.Module):
     """
-    Arquitectura Convolucional equivalente a la que teníamos en Keras.
-    PyTorch es mucho más estable y nos permitirá exportar a ONNX sin bugs.
+    Arquitectura Profesional: ResNet-18.
+    Al usar Transfer Learning, la red ya sabe extraer características complejas,
+    evitando que se quede 'ciega' (44.9%) cuando ve imágenes fuera de su dataset.
     """
-
     def __init__(self):
         super(DeepfakeCNN, self).__init__()
-        # Bloque 1
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
-        self.relu1 = nn.ReLU()
-        self.pool1 = nn.MaxPool2d(2) # Output: 64x64
+        # Cargamos la ResNet18 (usamos weights=None porque la entrenaremos desde 0
+        # en nuestro dominio de frecuencias, o se puede usar pre-entrenada).
+        self.resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
         
-        # Bloque 2
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.relu2 = nn.ReLU()
-        self.pool2 = nn.MaxPool2d(2) # Output: 32x32
+        # ResNet espera imágenes a color (3 canales). Nuestro espectro es en blanco y negro (1 canal).
+        # Sustituimos la primera capa para que acepte 1 canal en lugar de 3.
+        self.resnet.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         
-        # Bloque 3
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
-        self.relu3 = nn.ReLU()
-        self.pool3 = nn.MaxPool2d(2) # Output: 16x16
-        
-        self.flatten = nn.Flatten()
-        
-        # 64 canales * 16 de ancho * 16 de alto
-        self.fc1 = nn.Linear(64 * 16 * 16, 64)
-        self.relu4 = nn.ReLU()
-        self.dropout = nn.Dropout(0.5)
-        
-        # Capa de salida
-        self.fc2 = nn.Linear(64, 1)
-        self.sigmoid = nn.Sigmoid()
+        # Sustituimos la última capa (que por defecto clasifica 1000 objetos)
+        # por una capa que clasifique solo 1 cosa: Probabilidad de Deepfake.
+        num_ftrs = self.resnet.fc.in_features
+        self.resnet.fc = nn.Sequential(
+            nn.Dropout(0.5),
+            nn.Linear(num_ftrs, 1),
+            nn.Sigmoid()
+        )
 
     def forward(self, x):
-        x = self.pool1(self.relu1(self.conv1(x)))
-        x = self.pool2(self.relu2(self.conv2(x)))
-        x = self.pool3(self.relu3(self.conv3(x)))
-        x = self.flatten(x)
-        x = self.dropout(self.relu4(self.fc1(x)))
-        x = self.sigmoid(self.fc2(x))
-        return x
+        return self.resnet(x)
 
 def train_and_export(dataset_dir, output_model_dir):
     print("Cargando dataset...")

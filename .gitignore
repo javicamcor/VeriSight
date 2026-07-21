@@ -1,5 +1,4 @@
-data/fake/
-data/reales/
+data/
 __pycache__/
 *.npy
 *.pth
