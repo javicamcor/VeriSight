@@ -11,7 +11,7 @@ class DeepfakeCNN(nn.Module):
     Arquitectura Convolucional equivalente a la que teníamos en Keras.
     PyTorch es mucho más estable y nos permitirá exportar a ONNX sin bugs.
     """
-    
+
     def __init__(self):
         super(DeepfakeCNN, self).__init__()
         # Bloque 1
@@ -152,7 +152,20 @@ def train_and_export(dataset_dir, output_model_dir):
         output_names=['output'],
         dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}}
     )
-    print(f"¡Exportación Completada! Guardado en: {onnx_path}")
+    
+    # Parche: Forzar a ONNX a incrustar los pesos matemáticos dentro del propio archivo
+    # para que la extensión de Chrome no tenga que leer archivos externos fragmentados.
+    import onnx
+    print("Incrustando pesos internamente para compatibilidad web...")
+    merged_model = onnx.load(onnx_path)
+    onnx.save_model(merged_model, onnx_path)
+    
+    # Borramos la basura fragmentada si PyTorch llegó a generarla
+    data_path = onnx_path + ".data"
+    if os.path.exists(data_path):
+        os.remove(data_path)
+        
+    print(f"¡Exportación Completada! Archivo unificado guardado en: {onnx_path}")
     print("Este archivo .onnx es ligero y no fallará en tu extensión.")
 
 if __name__ == '__main__':

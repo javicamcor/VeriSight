@@ -1,5 +1,5 @@
-# Ignorar los datasets masivos y archivos temporales de Python
-data/
+data/fake/
+data/reales/
 __pycache__/
 *.npy
 *.pth

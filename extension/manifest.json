@@ -25,7 +25,18 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["sandbox.html", "sandbox.js", "opencv.js"],
+      "resources": [
+        "sandbox.html", 
+        "sandbox.js", 
+        "opencv.js", 
+        "ort.wasm.min.js", 
+        "ort-wasm.wasm", 
+        "ort-wasm-simd.wasm", 
+        "ort-wasm-threaded.wasm",
+        "ort-wasm-simd-threaded.mjs",
+        "ort-wasm-simd.mjs",
+        "ort-wasm-simd-threaded.wasm"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

@@ -72,29 +72,20 @@ function setupSandbox() {
  */
 window.addEventListener("message", (event) => {
     if (event.data && event.data.action === "ANALYSIS_COMPLETE") {
-        showOverlay("✅ Análisis espectral procesado en memoria listo para ML.", false);
+        const prob = event.data.prediction * 100;
+        const isFake = prob >= 50;
+        const icon = isFake ? "🤖 Alerta IA" : "✅ Real";
+        const extraText = isFake ? "Posible Deepfake" : "Imagen auténtica";
+        
+        const resultMsg = `${icon}\n${prob.toFixed(2)}% de probabilidad de IA.\n${extraText}`;
+        showOverlay(resultMsg, isFake);
+        
+    } else if (event.data && event.data.action === "ANALYSIS_LOADING") {
+        showOverlay("⏳ " + event.data.message, false);
     } else if (event.data && event.data.action === "ANALYSIS_ERROR") {
-        showOverlay("Error matemático en Sandbox: " + event.data.error, true);
+        showOverlay("Error en Sandbox (AI): " + event.data.error, true);
     }
 });
-
-/**
- * Recibe ImageData del espectro y la pinta en un Canvas dentro del overlay
- */
-function renderResult(imageData) {
-    const canvas = document.createElement('canvas');
-    canvas.width = imageData.width;
-    canvas.height = imageData.height;
-    
-    const ctx = canvas.getContext('2d');
-    ctx.putImageData(imageData, 0, 0);
-
-    canvas.style.maxWidth = '100%';
-    canvas.style.marginTop = '15px';
-    canvas.style.borderRadius = '4px';
-
-    showOverlay("Análisis espectral completado. Mostrando espectro:", false, canvas);
-}
 
 /**
  * Carga una imagen y extrae sus píxeles (ImageData) usando un Canvas temporal offscreen
@@ -162,6 +153,13 @@ function showOverlay(message, isError = false, canvasElement = null) {
     // Si pasamos un canvas (el espectro), lo añadimos al overlay
     if (canvasElement) {
         overlay.appendChild(canvasElement);
+    }
+    
+    // Si es un string con saltos de línea, lo formateamos bonito
+    if (message.includes("\n")) {
+        overlay.innerHTML = message.replace(/\n/g, '<br/>');
+        overlay.style.fontSize = "16px";
+        overlay.style.textAlign = "center";
     }
     
     overlay.style.opacity = "1";
