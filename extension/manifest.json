@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "VeriSight",
+  "version": "1.0",
+  "description": "Detección de imágenes generadas por IA (Deepfakes) mediante análisis de frecuencias en el navegador (Edge AI).",
+  "permissions": [
+    "contextMenus",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "sandbox": {
+    "pages": ["sandbox.html"]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["sandbox.html", "sandbox.js", "opencv.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
