@@ -2,3 +2,8 @@
 numpy
 opencv-python
 matplotlib
+torch
+torchvision
+onnx
+scikit-learn
+tqdm

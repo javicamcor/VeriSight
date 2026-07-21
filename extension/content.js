@@ -72,7 +72,7 @@ function setupSandbox() {
  */
 window.addEventListener("message", (event) => {
     if (event.data && event.data.action === "ANALYSIS_COMPLETE") {
-        renderResult(event.data.resultImageData);
+        showOverlay("✅ Análisis espectral procesado en memoria listo para ML.", false);
     } else if (event.data && event.data.action === "ANALYSIS_ERROR") {
         showOverlay("Error matemático en Sandbox: " + event.data.error, true);
     }

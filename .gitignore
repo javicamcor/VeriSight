@@ -1,0 +1,6 @@
+# Ignorar los datasets masivos y archivos temporales de Python
+data/
+__pycache__/
+*.npy
+*.pth
+extension/onnx_model/
