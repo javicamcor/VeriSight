@@ -51,7 +51,7 @@ def process_fourier(image_path, target_size=(128, 128), radius=30):
     
     return mag
 
-def build_dataset(real_dir, fake_dir, output_dir, target_size=(128, 128)):
+def build_dataset(real_dirs, fake_dirs, output_dir, target_size=(128, 128)):
     os.makedirs(output_dir, exist_ok=True)
     
     X = []
@@ -59,7 +59,10 @@ def build_dataset(real_dir, fake_dir, output_dir, target_size=(128, 128)):
     
     # Procesar imágenes REALES (Label 0)
     print("Procesando imágenes reales...")
-    real_images = glob.glob(os.path.join(real_dir, '*.*'))
+    real_images = []
+    for d in real_dirs:
+        real_images.extend(glob.glob(os.path.join(d, '*.*')))
+        
     for img_path in tqdm(real_images, desc="Real (0)"):
         mag = process_fourier(img_path, target_size)
         if mag is not None:
@@ -68,7 +71,10 @@ def build_dataset(real_dir, fake_dir, output_dir, target_size=(128, 128)):
             
     # Procesar imágenes FAKE (Label 1)
     print("\nProcesando imágenes deepfake...")
-    fake_images = glob.glob(os.path.join(fake_dir, '*.*'))
+    fake_images = []
+    for d in fake_dirs:
+        fake_images.extend(glob.glob(os.path.join(d, '*.*')))
+        
     for img_path in tqdm(fake_images, desc="Fake (1)"):
         mag = process_fourier(img_path, target_size)
         if mag is not None:
@@ -90,8 +96,8 @@ def build_dataset(real_dir, fake_dir, output_dir, target_size=(128, 128)):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Construir dataset de espectros para la CNN")
-    parser.add_argument('--real', type=str, required=True, help="Carpeta con imágenes reales")
-    parser.add_argument('--fake', type=str, required=True, help="Carpeta con imágenes generadas por IA")
+    parser.add_argument('--real', nargs='+', required=True, help="Carpeta(s) con imágenes reales")
+    parser.add_argument('--fake', nargs='+', required=True, help="Carpeta(s) con imágenes generadas por IA")
     parser.add_argument('--output', type=str, default='../data/processed_dataset', help="Directorio de salida para los .npy")
     
     args = parser.parse_args()

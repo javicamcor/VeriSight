@@ -3,92 +3,147 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import IterableDataset, DataLoader
 import argparse
-
+from tqdm import tqdm
 import torchvision.models as models
+import cv2
+from datasets import load_dataset
+import onnx
 
+# =====================================================================
+# 1. ARQUITECTURA DEL MODELO (Desde cero)
+# =====================================================================
 class DeepfakeCNN(nn.Module):
     """
-    Arquitectura Profesional: ResNet-18.
-    Al usar Transfer Learning, la red ya sabe extraer características complejas,
-    evitando que se quede 'ciega' (44.9%) cuando ve imágenes fuera de su dataset.
+    Arquitectura ResNet-18 configurada para entrenarse DESDE CERO (From Scratch).
+    Al no usar pesos preentrenados, la red aprenderá a buscar patrones 
+    en frecuencias matemáticas (espectrogramas), no en formas físicas.
     """
     def __init__(self):
         super(DeepfakeCNN, self).__init__()
-        # Cargamos la ResNet18 (usamos weights=None porque la entrenaremos desde 0
-        # en nuestro dominio de frecuencias, o se puede usar pre-entrenada).
-        self.resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        # Entrenamos desde cero (sin pesos previos)
+        self.resnet = models.resnet18(weights=None)
         
-        # ResNet espera imágenes a color (3 canales). Nuestro espectro es en blanco y negro (1 canal).
-        # Sustituimos la primera capa para que acepte 1 canal en lugar de 3.
+        # Adaptamos la primera capa para que acepte 1 solo canal (Blanco y Negro)
         self.resnet.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         
-        # Sustituimos la última capa (que por defecto clasifica 1000 objetos)
-        # por una capa que clasifique solo 1 cosa: Probabilidad de Deepfake.
+        # Sustituimos la última capa para clasificar probabilidad de Deepfake (1 salida)
         num_ftrs = self.resnet.fc.in_features
         self.resnet.fc = nn.Sequential(
             nn.Dropout(0.5),
-            nn.Linear(num_ftrs, 1),
-            nn.Sigmoid()
+            nn.Linear(num_ftrs, 1)
         )
 
     def forward(self, x):
         return self.resnet(x)
 
-def train_and_export(dataset_dir, output_model_dir):
-    print("Cargando dataset...")
-    X_path = os.path.join(dataset_dir, 'X_data.npy')
-    y_path = os.path.join(dataset_dir, 'y_labels.npy')
-    
-    if not os.path.exists(X_path) or not os.path.exists(y_path):
-        print(f"Error crítico: No se encontraron los archivos .npy en {dataset_dir}")
-        return
+# =====================================================================
+# 2. INGESTA DE DATOS Y EXTRACCIÓN MATEMÁTICA (Streaming)
+# =====================================================================
+class StreamingDeepfakeDataset(IterableDataset):
+    def __init__(self, dataset_name, split="train"):
+        super().__init__()
+        # streaming=True evita descargar las imágenes al disco duro
+        self.dataset = load_dataset(dataset_name, split=split, streaming=True)
         
-    X = np.load(X_path)
-    y = np.load(y_path)
-    
-    # Keras usa (N, H, W, C) pero PyTorch usa (N, C, H, W).
-    # Como dataset_builder genera (N, 128, 128, 1), lo permutamos:
-    X = np.transpose(X, (0, 3, 1, 2))
-    
-    # Normalizar imágenes al rango [0, 1]
-    X = X.astype('float32') / 255.0
-    y = y.astype('float32').reshape(-1, 1)
-    
-    # Barajar
-    indices = np.arange(X.shape[0])
-    np.random.shuffle(indices)
-    X = X[indices]
-    y = y[indices]
-    
-    split = int(0.8 * len(X))
-    X_train, X_val = X[:split], X[split:]
-    y_train, y_val = y[:split], y[split:]
-    
-    print(f"Entrenando con {len(X_train)} muestras y validando con {len(X_val)}")
-    
-    # Crear Tensores y DataLoaders
-    train_dataset = TensorDataset(torch.tensor(X_train), torch.tensor(y_train))
-    val_dataset = TensorDataset(torch.tensor(X_val), torch.tensor(y_val))
-    
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
-    
-    # Inicializar modelo, pérdida y optimizador
+    def process_image(self, pil_img):
+        # 1. Convertir a matriz numpy
+        img = np.array(pil_img)
+        
+        # 2. Asegurar escala de grises y tamaño estándar
+        if len(img.shape) == 3:
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+        img = cv2.resize(img, (128, 128))
+        
+        # 3. Ventana de Hann para difuminar bordes
+        filas, columnas = img.shape
+        ventana_x = np.hanning(columnas)
+        ventana_y = np.hanning(filas)
+        ventana_2d = np.outer(ventana_y, ventana_x)
+        img_suavizada = img * ventana_2d
+        
+        # 4. Transformada Discreta de Fourier
+        f = np.fft.fft2(img_suavizada)
+        fshift = np.fft.fftshift(f)
+        
+        # 5. Filtro de Paso Alto (Bloquear el centro)
+        centro_x, centro_y = filas // 2, columnas // 2
+        radio_filtro = 15 
+        x, y = np.ogrid[:filas, :columnas]
+        mascara = (x - centro_x)**2 + (y - centro_y)**2 <= radio_filtro**2
+        fshift[mascara] = 1
+        
+        # 6. Magnitud Logarítmica
+        espectro = 20 * np.log(np.abs(fshift) + 1)
+        
+        # 7. Normalización Z-Score
+        mean = np.mean(espectro)
+        std = np.std(espectro)
+        if std > 0:
+            espectro = (espectro - mean) / std
+            
+        # 8. Convertir a Tensor PyTorch (Canal, Alto, Ancho)
+        tensor = torch.from_numpy(espectro).float().unsqueeze(0)
+        return tensor
+
+    def __iter__(self):
+        for item in self.dataset:
+            try:
+                # En Defactify, las columnas se llaman 'Image' y 'Label_A'
+                pil_img = item['Image']
+                label = item['Label_A']
+                
+                tensor_espectro = self.process_image(pil_img)
+                tensor_label = torch.tensor([label], dtype=torch.float32)
+                
+                yield tensor_espectro, tensor_label
+            except Exception:
+                # Si una imagen del stream falla, simplemente pasamos a la siguiente
+                continue
+
+# =====================================================================
+# 3. BUCLE DE ENTRENAMIENTO Y EXPORTACIÓN A ONNX
+# =====================================================================
+def train_and_export(output_model_dir):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Usando hardware: {device}")
     
-    model = DeepfakeCNN().to(device)
-    criterion = nn.BCELoss() # Binary Cross Entropy (Para clasificación 0 vs 1)
-    optimizer = optim.Adam(model.parameters(), lr=0.0005)
+    print("\nConectando con Hugging Face (Streaming)...")
+    dataset_name = "Rajarshi-Roy-research/Defactify_Image_Dataset"
     
-    epochs = 15
-    print("\nIniciando entrenamiento de la CNN (PyTorch)...")
+    train_dataset = StreamingDeepfakeDataset(dataset_name, split="train")
+    val_dataset = StreamingDeepfakeDataset(dataset_name, split="validation")
+    
+    # En streaming no se puede usar shuffle=True, el flujo dicta el orden
+    train_loader = DataLoader(train_dataset, batch_size=32, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=32, num_workers=0)
+    
+    model = DeepfakeCNN().to(device)
+    
+    # COCOAI (Defactify) está tremendamente desbalanceado: 16.000 Reales vs 80.000 Fakes.
+    # pos_weight = Reales / Fakes = 16000 / 80000 = 0.2
+    pos_weight = torch.tensor([16000.0 / 80000.0]).to(device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    optimizer = optim.Adam(model.parameters(), lr=0.001) # Learning rate estándar para From Scratch
+    
+    # Reductor de velocidad automático: si la precisión se atasca 2 rondas, baja la velocidad a la mitad
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2, verbose=True)
+    
+    epochs = 25 # Subimos a 25 rondas para que el modelo tenga tiempo de afinar
+    best_val_acc = 0.0
+    
+    print("\nIniciando entrenamiento de la CNN por Streaming (PyTorch)...")
+    
     for epoch in range(epochs):
         model.train()
         running_loss = 0.0
-        for inputs, labels in train_loader:
+        
+        # Iteración de entrenamiento
+        # Nota: Al ser IterableDataset, tqdm no sabrá el total exacto hasta terminar
+        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs} [Train]")
+        
+        for inputs, labels in progress_bar:
             inputs, labels = inputs.to(device), labels.to(device)
             
             optimizer.zero_grad()
@@ -98,34 +153,47 @@ def train_and_export(dataset_dir, output_model_dir):
             optimizer.step()
             
             running_loss += loss.item()
+            progress_bar.set_postfix({'loss': f"{loss.item():.4f}"})
             
-        # Validación
+        # Iteración de validación
         model.eval()
         correct = 0
         total = 0
+        
+        val_bar = tqdm(val_loader, desc=f"Epoch {epoch+1}/{epochs} [Val]")
         with torch.no_grad():
-            for inputs, labels in val_loader:
+            for inputs, labels in val_bar:
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = model(inputs)
-                predicted = (outputs >= 0.5).float()
+                
+                predicted = (torch.sigmoid(outputs) >= 0.5).float()
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
                 
-        val_acc = correct / total
-        print(f"Epoch [{epoch+1}/{epochs}] | Loss: {running_loss/len(train_loader):.4f} | Val Accuracy: {val_acc*100:.2f}%")
+        val_acc = correct / total if total > 0 else 0
+        print(f"\nResumen Epoch [{epoch+1}/{epochs}] | Val Accuracy: {val_acc*100:.2f}%")
         
-    # =========================================================
-    # EXPORTACIÓN A ONNX (ESTÁNDAR UNIVERSAL)
-    # =========================================================
-    print(f"\nExportando modelo Edge AI (Formato ONNX) a {output_model_dir} ...")
-    os.makedirs(output_model_dir, exist_ok=True)
-    onnx_path = os.path.join(output_model_dir, 'model.onnx')
-    
-    # Guardado de seguridad nativo de PyTorch (por si falla ONNX)
-    torch.save(model.state_dict(), os.path.join(output_model_dir, 'model_backup.pth'))
-
-    # Creamos un tensor de muestra falso (1 imagen, 1 canal, 128x128)
+        # Le decimos al reductor de velocidad qué precisión hemos sacado
+        # para que decida si es momento de frenar.
+        scheduler.step(val_acc)
+        
+        # Sistema de guardado
+        os.makedirs(output_model_dir, exist_ok=True)
+        torch.save(model.state_dict(), os.path.join(output_model_dir, 'last_model.pth'))
+        
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            print(f" -> ¡Mejor modelo ({val_acc*100:.2f}%)! Guardando checkpoint...")
+            torch.save(model.state_dict(), os.path.join(output_model_dir, 'best_model.pth'))
+            
+    # Exportación final a Edge AI (ONNX)
+    print(f"\nExportando modelo a formato ONNX en {output_model_dir}...")
+    best_model_path = os.path.join(output_model_dir, 'best_model.pth')
+    if os.path.exists(best_model_path):
+        model.load_state_dict(torch.load(best_model_path))
+        
     dummy_input = torch.randn(1, 1, 128, 128).to(device)
+    onnx_path = os.path.join(output_model_dir, 'model.onnx')
     
     model.eval()
     torch.onnx.export(
@@ -133,32 +201,26 @@ def train_and_export(dataset_dir, output_model_dir):
         dummy_input, 
         onnx_path,
         export_params=True,
-        opset_version=11,          # Versión altamente compatible
+        opset_version=18,          # Versión actualizada para compatibilidad total con PyTorch
         do_constant_folding=True,
         input_names=['input'],
         output_names=['output'],
         dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}}
     )
     
-    # Parche: Forzar a ONNX a incrustar los pesos matemáticos dentro del propio archivo
-    # para que la extensión de Chrome no tenga que leer archivos externos fragmentados.
-    import onnx
     print("Incrustando pesos internamente para compatibilidad web...")
     merged_model = onnx.load(onnx_path)
     onnx.save_model(merged_model, onnx_path)
     
-    # Borramos la basura fragmentada si PyTorch llegó a generarla
     data_path = onnx_path + ".data"
     if os.path.exists(data_path):
         os.remove(data_path)
         
-    print(f"¡Exportación Completada! Archivo unificado guardado en: {onnx_path}")
-    print("Este archivo .onnx es ligero y no fallará en tu extensión.")
+    print(f"¡Proceso completado! Archivo final: {onnx_path}")
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Entrenar CNN para detectar Deepfakes con PyTorch")
-    parser.add_argument('--dataset', type=str, default='../data/processed_dataset', help="Carpeta con los archivos .npy")
-    parser.add_argument('--output', type=str, default='../extension/onnx_model', help="Carpeta de salida para el modelo Web")
+    parser = argparse.ArgumentParser(description="Entrenar CNN en Streaming para Edge AI")
+    parser.add_argument('--output', type=str, default='extension/onnx_model', help="Carpeta de salida")
     
     args = parser.parse_args()
-    train_and_export(args.dataset, args.output)
+    train_and_export(args.output)

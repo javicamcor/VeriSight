@@ -32,3 +32,5 @@ Como se puede observar en la imagen generada por el script (`comparativa_espectr
 * **Espectro de la Imagen Sintética (Abajo a la derecha):** Se aprecian claramente **líneas geométricas prominentes (trazos horizontales/verticales) y destellos estructurados**. Estos artefactos son la firma matemática del algoritmo. Cuando las redes generativas (GANs o Modelos de Difusión) realizan operaciones de *up-sampling* para crear nuevos píxeles a partir de ruido, introducen involuntariamente un "ruido de cuadrícula" periódico.
 
 **Conclusión:** Mientras que a simple vista ambas imágenes son indistinguibles en el dominio espacial, la gráfica demostrativa en el archivo `comparativa_espectros.png` evidencia mediante la Transformada Discreta de Fourier que los rostros sintéticos carecen de la aleatoriedad orgánica a nivel estructural. Esto valida matemáticamente la eficacia de **VeriSight** como método de detección de *Deepfakes*.
+
+**Dataset:** https://huggingface.co/datasets/Parveshiiii/AI-vs-Real, https://www.kaggle.com/datasets/gpch2159/ai-vs-human-syn-imgs-v2-partial, https://www.kaggle.com/datasets/xhlulu/140k-real-and-fake-faces
