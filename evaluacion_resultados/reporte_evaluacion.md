@@ -32,7 +32,7 @@ El modelo ha demostrado un rendimiento excepcional en todas las métricas de cla
 
 ### Métricas Globales
 * **Accuracy (Precisión Global):** `92.63%` (10,417 aciertos sobre 11,246).
-* **ROC-AUC Score:** > 0.96
+* **ROC-AUC Score:** > 0.9824
 
 ---
 
