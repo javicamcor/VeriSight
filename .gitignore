@@ -3,3 +3,4 @@ __pycache__/
 *.npy
 *.pth
 extension/onnx_model/
+scripts/

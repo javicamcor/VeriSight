@@ -7,3 +7,6 @@ torchvision
 onnx
 scikit-learn
 tqdm
+seaborn
+onnxruntime
+onnxscript
