@@ -42,7 +42,7 @@ El modelo ha demostrado un rendimiento excepcional en todas las métricas de cla
 A pesar del Data Augmentation extremo y la mezcla de datasets, la red de Dos Vías ha logrado un equilibrio muy sólido. Un **Recall de 0.94** en la clase *Fake* indica que el sistema es robusto frente a ataques (tasa de Falsos Negativos del ~6%). Simultáneamente, una **Precision de 0.91** certifica que el sistema mantiene las alertas falsas controladas, siendo altamente confiable para despliegues reales.
 
 ### Confianza del Modelo (ROC-AUC)
-El puntaje ROC-AUC superior a `0.96` revela que el clasificador ONNX sigue siendo altamente preciso y la separación matemática (logits) entre la clase *Real* y *Fake* es muy buena. El modelo no "adivina" en la frontera de decisión; sus predicciones gozan de una gran certidumbre.
+El puntaje ROC-AUC superior a `0.98` revela que el clasificador ONNX sigue siendo altamente preciso y la separación matemática (logits) entre la clase *Real* y *Fake* es muy buena. El modelo no "adivina" en la frontera de decisión; sus predicciones gozan de una gran certidumbre.
 
 ### Impacto de la Arquitectura Two-Stream
 La integración de la Transformada de Fourier ha resultado ser crítica. Al añadir ruido gaussiano y desenfoque durante el entrenamiento, obligamos a la red a no depender del dominio espacial. Los artefactos residuales y el "ruido de alta frecuencia" generados por las redes (GANs y Difusión) son interceptados por la rama frecuencial, manteniendo el *Accuracy* cerca del 98% en condiciones adversas.
